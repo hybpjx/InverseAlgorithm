@@ -16,7 +16,7 @@ import (
 func MD5Str(src string) string {
 	h := md5.New()
 	h.Write([]byte(src)) // 需要加密的字符串为
-	fmt.Printf("%s\n", hex.EncodeToString(h.Sum(nil))) // 输出加密结果
+	//fmt.Printf("%s\n", hex.EncodeToString(h.Sum(nil))) // 输出加密结果
 	return hex.EncodeToString(h.Sum(nil))
 }
 
