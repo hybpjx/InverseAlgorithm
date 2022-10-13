@@ -1,7 +1,6 @@
-package AES
+package InverseAlgorithm1
 
 import (
-	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
 )
@@ -26,12 +25,6 @@ func AesDecryptCBC(encrypted []byte, key []byte) (decrypted []byte) {
 	blockMode.CryptBlocks(decrypted, encrypted)                 // 解密
 	decrypted = pkcs5UnPadding(decrypted)                       // 去除补全码
 	return decrypted
-}
-
-func pkcs5Padding(ciphertext []byte, blockSize int) []byte {
-	padding := blockSize - len(ciphertext)%blockSize
-	padtext := bytes.Repeat([]byte{byte(padding)}, padding)
-	return append(ciphertext, padtext...)
 }
 
 func pkcs5UnPadding(origData []byte) []byte {

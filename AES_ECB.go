@@ -1,9 +1,8 @@
-package AES
+package InverseAlgorithm1
 
 import (
 	"crypto/aes"
 )
-
 
 func AesEncryptECB(origData []byte, key []byte) (encrypted []byte) {
 	cipher, _ := aes.NewCipher(generateKey(key))

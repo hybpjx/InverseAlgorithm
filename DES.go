@@ -6,8 +6,6 @@ import (
 	"crypto/des"
 )
 
-
-
 func DesCBCEncrypt(data, key, iv []byte) ([]byte, error) {
 	block, err := des.NewCipher(key)
 	if err != nil {
@@ -27,7 +25,6 @@ func pkcs5Padding(cipherText []byte, blockSize int) []byte {
 	padText := bytes.Repeat([]byte{byte(padding)}, padding)
 	return append(cipherText, padText...)
 }
-
 
 //func main() {
 //	data := []byte("hello world")

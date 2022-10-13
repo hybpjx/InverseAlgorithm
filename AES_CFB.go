@@ -1,4 +1,4 @@
-package AES
+package InverseAlgorithm1
 
 import (
 	"crypto/aes"

@@ -1,16 +1,17 @@
-package RSA
+package InverseAlgorithm1
 
 import (
+	"bytes"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"log"
 	"os"
 )
 
-// GenerateRSAKey 生成RSA私钥和公钥，保存到文件中
-func GenerateRSAKey(bits int) {
+func LongGenerateRSAKey(bits int) {
 	//GenerateKey函数使用随机数据生成器random生成一对具有指定字位数的RSA密钥
 	//Reader是一个全局、共享的密码用强随机数生成器
 	privateKey, err := rsa.GenerateKey(rand.Reader, bits)
@@ -73,8 +74,56 @@ func GenerateRSAKey(bits int) {
 	}
 }
 
-// RsaEncrypt RSA加密
-func RsaEncrypt(plainText []byte, path string) []byte {
+// RSA_Decrypts RSA解密支持分段解密
+func RSA_Decrypts(cipherText []byte, path string) []byte {
+	//打开文件
+	var bytesDecrypt []byte
+	file, err := os.Open(path)
+	if err != nil {
+		panic(err)
+	}
+	defer func(file *os.File) {
+		err := file.Close()
+		if err != nil {
+
+		}
+	}(file)
+	//获取文件内容
+	info, _ := file.Stat()
+	buf := make([]byte, info.Size())
+	_, _ = file.Read(buf)
+	//pem解码
+	block, _ := pem.Decode(buf)
+	//X509解码
+	privateKey, err := x509.ParsePKCS8PrivateKey(block.Bytes)
+	if err != nil {
+		fmt.Println(err.Error())
+		os.Exit(0)
+	}
+	p := privateKey.(*rsa.PrivateKey)
+	keySize := p.Size()
+	srcSize := len(cipherText)
+	log.Println("密钥长度", keySize, "密文长度", srcSize)
+	var offSet = 0
+	var buffer = bytes.Buffer{}
+	for offSet < srcSize {
+		endIndex := offSet + keySize
+		if endIndex > srcSize {
+			endIndex = srcSize
+		}
+		bytesOnce, err := rsa.DecryptPKCS1v15(rand.Reader, p, cipherText[offSet:endIndex])
+		if err != nil {
+			return nil
+		}
+		buffer.Write(bytesOnce)
+		offSet = endIndex
+	}
+	bytesDecrypt = buffer.Bytes()
+	return bytesDecrypt
+}
+
+// RsaEncryptBlock 公钥加密-分段
+func RsaEncryptBlock(src []byte, path string) (bytesEncrypt []byte, err error) {
 	//打开文件
 	file, err := os.Open(path)
 	if err != nil {
@@ -99,66 +148,43 @@ func RsaEncrypt(plainText []byte, path string) []byte {
 	}
 	//类型断言
 	publicKey := publicKeyInterface.(*rsa.PublicKey)
-	//对明文进行加密
-	cipherText, err := rsa.EncryptPKCS1v15(rand.Reader, publicKey, plainText)
-	if err != nil {
-		panic(err)
-	}
-	//返回密文
-	return cipherText
-}
-
-// RsaDecrypt RSA解密
-func RsaDecrypt(cipherText []byte, path string) []byte {
-	//打开文件
-	file, err := os.Open(path)
-	if err != nil {
-		panic(err)
-	}
-	defer func(file *os.File) {
-		err := file.Close()
-		if err != nil {
-
+	keySize, srcSize := publicKey.Size(), len(src)
+	log.Println("密钥长度", keySize, "明文长度", srcSize)
+	offSet, once := 0, keySize-11
+	buffer := bytes.Buffer{}
+	for offSet < srcSize {
+		endIndex := offSet + once
+		if endIndex > srcSize {
+			endIndex = srcSize
 		}
-	}(file)
-	//获取文件内容
-	info, _ := file.Stat()
-	buf := make([]byte, info.Size())
-	_, _ = file.Read(buf)
-	//pem解码
-	block, _ := pem.Decode(buf)
-	//X509解码
-	privateKey, err := x509.ParsePKCS8PrivateKey(block.Bytes)
-	if err != nil {
-		fmt.Println(err.Error())
-		os.Exit(0)
+		// 加密一部分
+		bytesOnce, err := rsa.EncryptPKCS1v15(rand.Reader, publicKey, src[offSet:endIndex])
+		if err != nil {
+			return nil, err
+		}
+		buffer.Write(bytesOnce)
+		offSet = endIndex
 	}
-	//对密文进行解密
-	plainText, _ := rsa.DecryptPKCS1v15(rand.Reader, privateKey.(*rsa.PrivateKey), cipherText)
-	//返回明文
-	return plainText
+	bytesEncrypt = buffer.Bytes()
+	return
 }
 
 //func main() {
-//	// RSA/ECB/PKCS1Padding
-//	// RSA是算法，ECB是分块模式，PKCS1Padding是填充模式
-//
-//	// pkcs1私钥生成openssl genrsa -out pkcs1.pem 1024
-//	// pkcs1转pkcs8私钥 ：openssl pkcs8 -in pkcs8.pem -nocrypt -out pkcs1.pem
-//
-//	// pkcs1 BEGIN RSA PRIVATE KEY
-//	// pkcs8 BEGIN PRIVATE KEY
-//
-//	GenerateRSAKey(1024)
-//	publicPath := "public_key.pem"
-//	privatePath := "private_key.pem"
-//
-//	publicPath = "public.pem"
-//	privatePath = "private.pem"
-//
-//	txt := []byte("hello")
-//	encrptTxt := RsaEncrypt(txt, publicPath)
-//	decrptCode := RsaDecrypt(encrptTxt, privatePath)
+//	GenerateRSAKey(2048)
+//	publicPath := "public.pem"
+//	privatePath := "private.pem"
+//	var a = []byte("hello")
+//	encrptTxt, err := RsaEncryptBlock(a, publicPath)
+//	if err != nil {
+//		fmt.Println(err.Error())
+//	}
+//	encodeString := base64.StdEncoding.EncodeToString(encrptTxt)
+//	decodeByte, err := base64.StdEncoding.DecodeString(encodeString)
+//	if err != nil {
+//		panic(err)
+//	}
+//	//生成RSA私钥和公钥，保存到文件中
+//	decrptCode := RSA_Decrypts(decodeByte, privatePath)
 //	fmt.Println(string(decrptCode))
 //
 //}
